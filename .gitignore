@@ -1,0 +1,31 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Virtual envs
+venv/
+.venv/
+
+# Env files / secrets
+.env
+*.env
+
+# Jupyter and temp
+.ipynb_checkpoints/
+
+# Node (if any future UI)
+node_modules/
+
+# Local data caches
+.cache/
+
