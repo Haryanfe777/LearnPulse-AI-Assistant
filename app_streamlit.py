@@ -20,6 +20,41 @@ st.caption("Ask questions about students or classes and get instant feedback.")
 # ---------------------------
 # HELPER FUNCTIONS
 # ---------------------------
+def sanitize_code(code: str) -> str:
+    """Clean and fix common AI-generated code issues."""
+    # Replace curly/smart quotes with straight quotes
+    replacements = {
+        '\u201c': '"',  # Left double quote
+        '\u201d': '"',  # Right double quote
+        '\u2018': "'",  # Left single quote
+        '\u2019': "'",  # Right single quote
+        '\u00e2\u20ac\u0153': '"',  # UTF-8 mangled left quote
+        '\u00e2\u20ac\u009d': '"',  # UTF-8 mangled right quote
+        '\u00e2\u20ac\u02dc': "'",  # UTF-8 mangled apostrophe
+        '\u2032': "'",  # Prime
+        '\u2033': '"',  # Double prime
+        '\u00b4': "'",  # Acute accent
+        '\u0060': "'",  # Grave accent
+        '`': "'",       # Backtick to single quote
+    }
+    
+    for old, new in replacements.items():
+        code = code.replace(old, new)
+    
+    # Remove any remaining non-ASCII characters that might cause issues
+    # But preserve common ones used in matplotlib
+    cleaned_lines = []
+    for line in code.split('\n'):
+        # Skip lines that are just comments with special chars
+        if line.strip().startswith('#'):
+            # Keep ASCII-safe comments only
+            cleaned_lines.append(''.join(c if ord(c) < 128 else '' for c in line))
+        else:
+            cleaned_lines.append(line)
+    
+    return '\n'.join(cleaned_lines)
+
+
 def render_message_with_charts(response_text):
     """Render message with charts appearing inline where they're referenced."""
     # Split by <execute_python> tags to get text segments and code blocks
@@ -33,13 +68,17 @@ def render_message_with_charts(response_text):
     
     for i, part in enumerate(parts):
         if i % 2 == 0:
-            # This is text content
+            # This is text content - render with proper markdown
             if part.strip():
-                st.markdown(part)
+                # Clean up any residual formatting issues
+                clean_text = part.strip()
+                st.markdown(clean_text)
         else:
             # This is code to execute
             try:
-                code_clean = part.strip().replace('plt.show()', '')
+                # Sanitize the code first
+                code_clean = sanitize_code(part.strip())
+                code_clean = code_clean.replace('plt.show()', '')
                 
                 # Clear any existing figures
                 plt.clf()
@@ -65,21 +104,18 @@ def render_message_with_charts(response_text):
                     st.pyplot(fig)
                     plt.close(fig)
                 else:
-                    st.warning("⚠️ Code executed but no chart was created")
+                    st.info("📊 Chart code executed successfully (no visual output)")
                 
             except SyntaxError as e:
-                st.error(f"❌ **Syntax Error in generated code:** {str(e)}")
-                st.info("💡 **Tip:** Try rephrasing your request. The AI may have generated invalid Python syntax.")
-                with st.expander("📄 Show code that failed"):
-                    # Clean up quotes to display properly
-                    display_code = part.strip()
-                    st.code(display_code, language='python')
-                    st.caption(f"Error details: Line {e.lineno if hasattr(e, 'lineno') else '?'}, {e.msg if hasattr(e, 'msg') else str(e)}")
+                st.error(f"❌ **Chart Generation Error**")
+                st.caption(f"The AI generated code with a syntax issue. Try asking: 'Show me a simple bar chart of scores'")
+                with st.expander("🔧 Technical Details", expanded=False):
+                    st.code(part.strip()[:500], language='python')
+                    st.caption(f"Error: {str(e)}")
             except Exception as e:
-                st.error(f"❌ Error executing chart: {str(e)}")
-                st.info("💡 Try asking the question differently or request a simpler chart.")
-                with st.expander("📄 Show code that failed"):
-                    st.code(part, language='python')
+                st.warning(f"⚠️ Could not render chart: {str(e)[:100]}")
+                with st.expander("🔧 Technical Details", expanded=False):
+                    st.code(part.strip()[:500], language='python')
 
 # ---------------------------
 # SIDEBAR (for dataset preview)
