@@ -1,0 +1,142 @@
+# Cloud Run service configuration for LearnPulse AI Instructor Assistant
+# Deploy with: gcloud run services replace cloudrun-service.yaml --region=europe-west1
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: teacher-assistant
+  labels:
+    cloud.googleapis.com/location: europe-west1
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+spec:
+  template:
+    metadata:
+      annotations:
+        # Auto-scaling
+        autoscaling.knative.dev/maxScale: '100'
+        autoscaling.knative.dev/minScale: '1'
+        
+        # Cloud SQL connection
+        run.googleapis.com/cloudsql-instances: PROJECT_ID:europe-west1:teacher-assistant-db
+        
+        # VPC connector for Memorystore Redis
+        run.googleapis.com/vpc-access-connector: projects/PROJECT_ID/locations/europe-west1/connectors/serverless-connector
+        run.googleapis.com/vpc-access-egress: private-ranges-only
+        
+        # Execution environment
+        run.googleapis.com/execution-environment: gen2
+    
+    spec:
+      # Container concurrency (requests per instance)
+      containerConcurrency: 80
+      
+      # Request timeout
+      timeoutSeconds: 300
+      
+      # Service account with least privilege
+      serviceAccountName: teacher-assistant-sa@PROJECT_ID.iam.gserviceaccount.com
+      
+      containers:
+        - image: europe-west1-docker.pkg.dev/PROJECT_ID/teacher-assistant/api:latest
+          
+          ports:
+            - name: http1
+              containerPort: 8000
+          
+          env:
+            # Environment
+            - name: ENVIRONMENT
+              value: "production"
+            
+            # Google Cloud Configuration
+            - name: PROJECT_ID
+              value: "PROJECT_ID"
+            - name: REGION
+              value: "europe-west1"
+            
+            # Database Configuration (Cloud SQL)
+            - name: DB_HOST
+              value: "/cloudsql/PROJECT_ID:europe-west1:teacher-assistant-db"
+            - name: DB_NAME
+              value: "teacher_assistant"
+            - name: DB_USER
+              value: "appuser"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-password
+                  key: latest
+            - name: DB_PORT
+              value: "5432"
+            
+            # Redis Configuration (Memorystore)
+            - name: REDIS_HOST
+              value: "10.0.0.3"  # Replace with actual Memorystore IP
+            - name: REDIS_PORT
+              value: "6379"
+            - name: CACHE_TTL_HOURS
+              value: "1"
+            - name: SESSION_TTL_DAYS
+              value: "7"
+            
+            # Authentication
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret-key
+                  key: latest
+            
+            # Logging
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: JSON_LOGGING
+              value: "true"
+            
+            # Feature Flags
+            - name: ENABLE_REDIS_CACHE
+              value: "true"
+            - name: ENABLE_SESSION_SUMMARIZATION
+              value: "true"
+          
+          # Resource limits
+          resources:
+            limits:
+              cpu: "2000m"  # 2 vCPU
+              memory: "2Gi"  # 2 GB RAM
+          
+          # Startup probe
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+  
+  # Traffic routing
+  traffic:
+    - percent: 100
+      latestRevision: true
+

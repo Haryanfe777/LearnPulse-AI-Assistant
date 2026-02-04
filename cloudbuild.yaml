@@ -1,0 +1,66 @@
+# Cloud Build configuration for LearnPulse AI Instructor Assistant
+# Triggered on git push to main branch
+
+steps:
+  # Step 1: Run tests
+  - name: 'python:3.11-slim'
+    id: 'Run Tests'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install --no-cache-dir -r requirements.txt
+        pytest tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=80
+    
+  # Step 2: Build container image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Image'
+    args: [
+      'build',
+      '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/teacher-assistant/api:$SHORT_SHA',
+      '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/teacher-assistant/api:latest',
+      '.'
+    ]
+  
+  # Step 3: Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Image'
+    args: ['push', '--all-tags', 'europe-west1-docker.pkg.dev/$PROJECT_ID/teacher-assistant/api']
+  
+  # Step 4: Deploy to Cloud Run (staging)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Deploy to Staging'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'teacher-assistant-staging'
+      - '--image=europe-west1-docker.pkg.dev/$PROJECT_ID/teacher-assistant/api:$SHORT_SHA'
+      - '--region=europe-west1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=ENVIRONMENT=staging,PROJECT_ID=$PROJECT_ID,REGION=europe-west1'
+      - '--memory=1Gi'
+      - '--cpu=2'
+      - '--min-instances=0'
+      - '--max-instances=10'
+      - '--timeout=300'
+      - '--service-account=teacher-assistant-sa@$PROJECT_ID.iam.gserviceaccount.com'
+
+# Container images to publish
+images:
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/teacher-assistant/api:$SHORT_SHA'
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/teacher-assistant/api:latest'
+
+# Build options
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+  
+# Timeout
+timeout: '1800s'  # 30 minutes
+
+# Substitutions (can be overridden)
+substitutions:
+  _DEPLOY_REGION: 'europe-west1'
+

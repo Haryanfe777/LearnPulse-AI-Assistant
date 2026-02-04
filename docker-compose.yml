@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: teacher-assistant-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - teacher-assistant-network
+  
+  # PostgreSQL for production data storage (future enhancement)
+  postgres:
+    image: postgres:15-alpine
+    container_name: teacher-assistant-postgres
+    environment:
+      POSTGRES_DB: teacher_assistant
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d  # Auto-run SQL migrations on first start
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - teacher-assistant-network
+  
+  # FastAPI backend (optional - can run locally)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: teacher-assistant-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PROJECT_ID=${PROJECT_ID}
+      - REGION=${REGION}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=teacher_assistant
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-development-secret-key}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - teacher-assistant-network
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+networks:
+  teacher-assistant-network:
+    driver: bridge
+
