@@ -36,7 +36,7 @@ from app.services.support import (
     create_support_ticket,
     ESCALATION_THRESHOLD,
 )
-from app.core.auth import get_current_user, User, LoginRequest, TokenResponse, authenticate_user, create_access_token, verify_class_access, verify_student_access
+from app.core.auth import get_current_user, get_optional_user, User, LoginRequest, TokenResponse, authenticate_user, create_access_token, verify_class_access, verify_student_access
 from app.infrastructure.redis import SessionStore, CacheManager, get_redis_client
 from app.core.logging import get_logger, LogTimer
 
@@ -107,10 +107,10 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 # -----------------
 
 @router.get("/student/{name}")
-async def student_summary(name: str, current_user: User = Depends(get_current_user)):
+async def student_summary(name: str, current_user: User = Depends(get_optional_user)):
     """Return analytics summary for a given student.
     
-    Requires: Authentication
+    Authentication: Optional (demo mode enabled for unauthenticated requests)
     """
     with LogTimer(logger, f"student_summary:{name}"):
         # Check cache first
@@ -161,10 +161,10 @@ async def student_summary(name: str, current_user: User = Depends(get_current_us
 
 
 @router.get("/feedback/student/{name}")
-async def get_student_feedback(name: str, current_user: User = Depends(get_current_user)):
+async def get_student_feedback(name: str, current_user: User = Depends(get_optional_user)):
     """Generate individualized feedback for a student.
     
-    Requires: Authentication
+    Authentication: Optional (demo mode enabled for unauthenticated requests)
     """
     with LogTimer(logger, f"student_feedback:{name}"):
         # Get student data with suggestions
@@ -201,10 +201,10 @@ async def get_student_feedback(name: str, current_user: User = Depends(get_curre
 # -----------------
 
 @router.get("/class/{class_id}")
-async def class_summary(class_id: str, current_user: User = Depends(get_current_user)):
+async def class_summary(class_id: str, current_user: User = Depends(get_optional_user)):
     """Return analytics summary for a class.
     
-    Requires: Authentication
+    Authentication: Optional (demo mode enabled for unauthenticated requests)
     """
     with LogTimer(logger, f"class_summary:{class_id}"):
         # Verify access
@@ -244,10 +244,10 @@ async def class_summary(class_id: str, current_user: User = Depends(get_current_
 # -----------------
 
 @router.get("/report/student/{name}/html", response_class=HTMLResponse)
-async def get_student_report_html(name: str, current_user: User = Depends(get_current_user)):
+async def get_student_report_html(name: str, current_user: User = Depends(get_optional_user)):
     """Generate and return HTML report for a student.
     
-    Requires: Authentication
+    Authentication: Optional (demo mode enabled for unauthenticated requests)
     """
     try:
         # Verify access
@@ -270,10 +270,10 @@ async def get_student_report_html(name: str, current_user: User = Depends(get_cu
 
 
 @router.get("/report/student/{name}/pdf")
-async def get_student_report_pdf(name: str, current_user: User = Depends(get_current_user)):
+async def get_student_report_pdf(name: str, current_user: User = Depends(get_optional_user)):
     """Generate and download PDF report for a student.
     
-    Requires: Authentication
+    Authentication: Optional (demo mode enabled for unauthenticated requests)
     """
     try:
         # Verify access
@@ -300,10 +300,10 @@ async def get_student_report_pdf(name: str, current_user: User = Depends(get_cur
 
 
 @router.get("/report/class/{class_id}/html", response_class=HTMLResponse)
-async def get_class_report_html(class_id: str, current_user: User = Depends(get_current_user)):
+async def get_class_report_html(class_id: str, current_user: User = Depends(get_optional_user)):
     """Generate and return HTML report for a class.
     
-    Requires: Authentication
+    Authentication: Optional (demo mode enabled for unauthenticated requests)
     """
     try:
         verify_class_access(current_user, class_id)
@@ -320,10 +320,10 @@ async def get_class_report_html(class_id: str, current_user: User = Depends(get_
 
 
 @router.get("/report/class/{class_id}/pdf")
-async def get_class_report_pdf(class_id: str, current_user: User = Depends(get_current_user)):
+async def get_class_report_pdf(class_id: str, current_user: User = Depends(get_optional_user)):
     """Generate and download PDF report for a class.
     
-    Requires: Authentication
+    Authentication: Optional (demo mode enabled for unauthenticated requests)
     """
     try:
         verify_class_access(current_user, class_id)
@@ -370,10 +370,10 @@ def _load_entities():
 
 
 @router.post("/chat")
-async def chat_endpoint(req: ChatRequest, current_user: User = Depends(get_current_user)):
+async def chat_endpoint(req: ChatRequest, current_user: User = Depends(get_optional_user)):
     """Conversational endpoint with intent detection and context management.
     
-    Requires: Authentication
+    Authentication: Optional (demo mode enabled for unauthenticated requests)
     """
     with LogTimer(logger, "chat_request"):
         base_session_id = req.session_id or str(uuid.uuid4())
@@ -642,10 +642,10 @@ async def chat_endpoint(req: ChatRequest, current_user: User = Depends(get_curre
 # -----------------
 
 @router.get("/meta")
-async def meta(current_user: User = Depends(get_current_user)):
+async def meta(current_user: User = Depends(get_optional_user)):
     """Return available student names and class ids.
     
-    Requires: Authentication
+    Authentication: Optional (demo mode enabled for unauthenticated requests)
     """
     students = list_students()
     classes = list_classes()
