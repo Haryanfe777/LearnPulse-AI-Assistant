@@ -31,10 +31,10 @@ def _get_executor():
 
 
 @lru_cache(maxsize=2)  # Cache both Flash and Pro models
-def get_model(model_name: str = "gemini-2.0-flash-exp"):
+def get_model(model_name: str = "gemini-2.0-flash-001"):
     """Initialize Vertex AI and return a Gemini model handle. Cached for performance.
     
-    Using gemini-2.0-flash-exp for 3-5x faster responses (1-2s vs 3-6s).
+    Using gemini-2.0-flash-001 (latest stable) for fast responses with good quality.
     For complex analysis, can override with gemini-2.5-pro.
     """
     creds = get_vertex_credentials()

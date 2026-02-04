@@ -9,10 +9,10 @@ from functools import lru_cache
 logger = get_logger(__name__)
 
 @lru_cache(maxsize=2)  # Cache both Flash and Pro models
-def get_model(model_name: str = "gemini-2.0-flash-exp"):
+def get_model(model_name: str = "gemini-2.0-flash-001"):
     """Initialize Vertex AI and return a Gemini model handle. Cached for performance.
     
-    Using gemini-2.0-flash-exp for 3-5x faster responses.
+    Using gemini-2.0-flash-001 (latest stable) for fast responses with good quality.
     """
     creds = get_vertex_credentials()
     init(project=PROJECT_ID, location=REGION, credentials=creds)
