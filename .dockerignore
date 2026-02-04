@@ -1,0 +1,64 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+dist
+build
+*.egg
+.venv
+venv
+env
+ENV
+
+# IDE
+.vscode
+.idea
+.cursor
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+*.cover
+.tox
+
+# Documentation
+*.md
+!README.md
+docs/
+SUPPORT_ESCALATION_*.md
+LATEST_FIXES_SUMMARY.md
+*.txt
+!requirements.txt
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Deployment
+.env
+.env.*
+docker-compose.yml
+cloudbuild.yaml
+cloudrun-service.yaml
+deploy.sh
+
+# Tests
+tests/
+*.test.py
+conftest.py
