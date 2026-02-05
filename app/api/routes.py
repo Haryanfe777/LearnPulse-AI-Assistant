@@ -144,7 +144,7 @@ async def student_summary(name: str, current_user: User = Depends(get_optional_u
             verify_student_access(current_user, name, student_class)
         
         try:
-            from src.analytics import get_student_stats
+            from app.services.analytics import get_student_stats
             stats = get_student_stats(name, data)
             
             result = {"student": name, "stats": stats}
@@ -223,7 +223,7 @@ async def class_summary(class_id: str, current_user: User = Depends(get_optional
             raise HTTPException(status_code=404, detail=f"No data found for class '{class_id}'")
         
         try:
-            from src.analytics import get_class_trends
+            from app.services.analytics import get_class_trends
             trends = get_class_trends(class_id, data)
             
             result = {"class_id": class_id, "trends": trends}
