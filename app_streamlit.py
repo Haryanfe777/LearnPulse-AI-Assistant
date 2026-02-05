@@ -86,7 +86,7 @@ st.caption("Ask questions about students or classes and get instant feedback.")
 # HELPER FUNCTIONS
 # ---------------------------
 def sanitize_code(code: str) -> str:
-    """Clean and fix common AI-generated code issues."""
+    """Clean and normalize code for execution."""
     # Replace curly/smart quotes with straight quotes
     replacements = {
         '\u201c': '"',  # Left double quote
@@ -173,7 +173,7 @@ def render_message_with_charts(response_text):
                 
             except SyntaxError as e:
                 st.error(f"❌ **Chart Generation Error**")
-                st.caption(f"The AI generated code with a syntax issue. Try asking: 'Show me a simple bar chart of scores'")
+                st.caption(f"There was a syntax issue generating the chart. Try rephrasing your request.")
                 with st.expander("🔧 Technical Details", expanded=False):
                     st.code(part.strip()[:500], language='python')
                     st.caption(f"Error: {str(e)}")

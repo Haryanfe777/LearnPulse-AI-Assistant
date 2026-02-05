@@ -1,31 +1,50 @@
 # LearnPulse AI Instructor Assistant
 
-An AI-powered teaching assistant that helps K-12 instructors analyze student learning data, track progress, generate personalized feedback, and make data-driven classroom decisions.
+A smart teaching assistant platform that helps K-12 instructors analyze student learning data, track progress, generate personalized feedback, and make data-driven classroom decisions.
+
+## Live Demo
+
+- **Web Application**: https://learnpulse-frontend-kgbnk6qtsa-uc.a.run.app
+- **API Documentation**: https://learnpulse-assistant-kgbnk6qtsa-uc.a.run.app/docs
+
+### Demo Credentials
+- **Username**: `Habeeb HAMMED`
+- **Password**: `Haryanfe7`
 
 ## Features
 
-- **Conversational AI Interface**: Natural language queries about student/class performance
-- **Student Analytics**: Track individual student progress, identify struggling areas
-- **Class Insights**: Aggregate class trends, compare performance across concepts
-- **Personalized Feedback**: AI-generated, instructor-friendly feedback for students
-- **Visual Reports**: Interactive charts and PDF reports
+- **Conversational Interface**: Natural language queries about student/class performance
+- **Student Analytics**: Track individual progress, identify areas needing attention
+- **Class Insights**: Aggregate trends, compare performance across concepts
+- **Personalized Feedback**: Generate actionable, instructor-friendly feedback
+- **Visual Reports**: Interactive charts and downloadable PDF reports
 - **Multi-language Support**: English and French
 
 ## Architecture
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Streamlit UI  │────>│   FastAPI API    │────>│  Vertex AI      │
-│   (Frontend)    │     │   (Backend)      │     │  (Gemini 2.0)   │
+│   Streamlit UI  │────>│   FastAPI API    │────>│   Vertex AI     │
+│   (Frontend)    │     │   (Backend)      │     │   (Gemini 2.0)  │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
                                │
                     ┌──────────┴──────────┐
                     │                     │
                ┌────▼────┐          ┌─────▼─────┐
-               │  Redis  │          │ Mock Data │
-               │ (Cache) │          │   (CSV)   │
+               │  Redis  │          │ BigQuery  │
+               │ (Cache) │          │  (Data)   │
                └─────────┘          └───────────┘
 ```
+
+## Technology Stack
+
+- **Backend**: FastAPI (Python 3.11)
+- **Frontend**: Streamlit
+- **LLM**: Google Vertex AI (Gemini 2.0 Flash)
+- **Database**: BigQuery
+- **Caching**: Redis (Memorystore)
+- **Deployment**: Google Cloud Run
+- **CI/CD**: Cloud Build
 
 ## Quick Start
 
@@ -39,8 +58,8 @@ An AI-powered teaching assistant that helps K-12 instructors analyze student lea
 
 1. **Clone and setup**:
    ```bash
-   git clone https://github.com/Haryanfe777/learnpulse-ai-assistant.git
-   cd learnpulse-ai-assistant
+   git clone https://github.com/Haryanfe777/LearnPulse-AI-Assistant.git
+   cd LearnPulse-AI-Assistant
    python -m venv venv
    source venv/bin/activate  # Windows: .\venv\Scripts\activate
    pip install -r requirements.txt
@@ -49,191 +68,128 @@ An AI-powered teaching assistant that helps K-12 instructors analyze student lea
 2. **Configure environment**:
    ```bash
    cp .env.example .env
-   # Edit .env with your settings
+   # Edit .env with your GCP project settings
    ```
 
-3. **GCP Authentication** (choose one):
+3. **GCP Authentication**:
    ```bash
-   # Option A: Service Account Key (local dev)
-   # Download key from GCP Console, save to credentials/
-   # Set GOOGLE_APPLICATION_CREDENTIALS in .env
-   
-   # Option B: Application Default Credentials
    gcloud auth application-default login
    ```
 
 4. **Start the services**:
    ```bash
-   # Terminal 1: FastAPI backend
+   # Terminal 1: Backend API
    uvicorn main:app --reload --port 8000
    
-   # Terminal 2: Streamlit frontend
+   # Terminal 2: Frontend UI
    streamlit run app_streamlit.py --server.port 8501
    ```
 
 5. **Access**:
-   - API: http://localhost:8000
-   - Streamlit UI: http://localhost:8501
+   - Frontend: http://localhost:8501
    - API Docs: http://localhost:8000/docs
 
 ## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/health` | GET | Health check for Cloud Run |
-| `/ready` | GET | Readiness check with dependency status |
+| `/health` | GET | Service health check |
+| `/ready` | GET | Readiness check with dependencies |
 | `/meta` | GET | List available students and classes |
-| `/chat` | POST | Conversational AI endpoint |
+| `/chat` | POST | Conversational query endpoint |
 | `/student/{name}` | GET | Individual student analytics |
 | `/class/{class_id}` | GET | Class-level analytics |
-| `/feedback/student/{name}` | GET | Generate personalized feedback |
+| `/feedback/student/{name}` | GET | Personalized feedback generation |
 | `/report/student/{name}/html` | GET | Student HTML report |
-| `/report/student/{name}/pdf` | GET | Student PDF report |
+| `/report/student/{name}/pdf` | GET | Student PDF download |
 | `/auth/login` | POST | JWT authentication |
-
-## Production Deployment (Cloud Run)
-
-### Prerequisites
-
-1. GCP Project with billing enabled
-2. APIs enabled: Vertex AI, Cloud Run, Cloud Build
-3. Service account with `Vertex AI User` role
-
-### Deploy
-
-```bash
-# Set project
-export PROJECT_ID=your-project-id
-export REGION=us-central1
-export SA_EMAIL=your-sa@$PROJECT_ID.iam.gserviceaccount.com
-
-# Build and push image
-gcloud builds submit --tag gcr.io/$PROJECT_ID/learnpulse-assistant
-
-# Create secrets (first time only)
-echo -n "your-secure-jwt-secret-64-chars" | \
-  gcloud secrets create jwt-secret --data-file=-
-
-# Deploy to Cloud Run
-gcloud run deploy learnpulse-assistant \
-  --image gcr.io/$PROJECT_ID/learnpulse-assistant \
-  --platform managed \
-  --region $REGION \
-  --service-account $SA_EMAIL \
-  --set-env-vars "PROJECT_ID=$PROJECT_ID,REGION=$REGION,ENVIRONMENT=production" \
-  --set-secrets "JWT_SECRET_KEY=jwt-secret:latest" \
-  --allow-unauthenticated \
-  --memory 2Gi \
-  --min-instances 0 \
-  --max-instances 10
-```
-
-### With Memorystore Redis (Optional)
-
-```bash
-# Create Memorystore instance
-gcloud redis instances create learnpulse-redis \
-  --region=$REGION \
-  --tier=basic \
-  --size=1
-
-# Get Redis IP
-REDIS_IP=$(gcloud redis instances describe learnpulse-redis \
-  --region=$REGION --format='value(host)')
-
-# Create VPC connector
-gcloud compute networks vpc-access connectors create learnpulse-vpc \
-  --region=$REGION \
-  --range=10.8.0.0/28
-
-# Deploy with Redis
-gcloud run deploy learnpulse-assistant \
-  --image gcr.io/$PROJECT_ID/learnpulse-assistant \
-  --set-env-vars "REDIS_HOST=$REDIS_IP" \
-  --vpc-connector learnpulse-vpc \
-  ... (other flags)
-```
-
-## Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `PROJECT_ID` | Yes | - | GCP project ID |
-| `REGION` | Yes | us-central1 | GCP region |
-| `ENVIRONMENT` | No | development | Environment (development/production) |
-| `JWT_SECRET_KEY` | Yes (prod) | - | JWT signing key (64+ chars recommended) |
-| `REDIS_HOST` | No | localhost | Redis host |
-| `REDIS_PORT` | No | 6379 | Redis port |
-| `LOG_LEVEL` | No | INFO | Logging level |
 
 ## Project Structure
 
 ```
-learnpulse-ai-assistant/
+LearnPulse-AI-Assistant/
 ├── app/
-│   ├── api/
-│   │   └── routes.py          # FastAPI endpoints
+│   ├── api/routes.py           # API endpoints
 │   ├── core/
-│   │   ├── auth.py            # JWT authentication
-│   │   ├── config.py          # Settings management
-│   │   └── logging.py         # Structured logging
-│   ├── domain/
-│   │   ├── student.py         # Student models
-│   │   └── user.py            # User models
+│   │   ├── auth.py             # JWT authentication
+│   │   ├── config.py           # Configuration
+│   │   └── logging.py          # Structured logging
+│   ├── domain/                 # Domain models
 │   ├── infrastructure/
-│   │   ├── data_loader.py     # Data access layer
-│   │   ├── redis.py           # Redis client
-│   │   ├── vertex.py          # Vertex AI client
-│   │   └── vertex_async.py    # Async Vertex AI
-│   ├── services/
-│   │   ├── analytics.py       # Analytics logic
-│   │   ├── assistant.py       # AI conversation
-│   │   ├── reports.py         # Report generation
-│   │   └── support.py         # Support escalation
-│   └── utils/
-│       └── text.py            # Text utilities
-├── knowledge/                  # Knowledge base docs
+│   │   ├── data_loader.py      # Data access
+│   │   ├── redis.py            # Cache client
+│   │   └── vertex.py           # LLM client
+│   └── services/
+│       ├── analytics.py        # Analytics logic
+│       ├── assistant.py        # Conversation handler
+│       └── reports.py          # Report generation
 ├── mock_data/                  # Sample data
-├── tests/                      # Test suite
-├── main.py                     # Application entrypoint
-├── app_streamlit.py           # Streamlit frontend
-├── Dockerfile                  # Production container
-├── requirements.txt            # Dependencies
-└── .env.example               # Environment template
+├── main.py                     # Application entry
+├── app_streamlit.py            # Frontend
+├── Dockerfile                  # Backend container
+├── Dockerfile.streamlit        # Frontend container
+└── requirements.txt            # Dependencies
 ```
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PROJECT_ID` | Yes | GCP project ID |
+| `REGION` | Yes | GCP region (e.g., us-central1) |
+| `ENVIRONMENT` | No | development/production |
+| `JWT_SECRET_KEY` | Yes (prod) | JWT signing key |
+| `REDIS_HOST` | No | Redis host for caching |
+| `REDIS_PORT` | No | Redis port (default: 6379) |
+
+## Deployment
+
+The application is deployed on Google Cloud Run with automatic scaling.
+
+### Manual Deployment
+
+```bash
+# Build and push images
+docker build -t gcr.io/PROJECT_ID/learnpulse-assistant .
+docker push gcr.io/PROJECT_ID/learnpulse-assistant
+
+# Deploy to Cloud Run
+gcloud run deploy learnpulse-assistant \
+  --image gcr.io/PROJECT_ID/learnpulse-assistant \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated
+```
+
+### CI/CD
+
+Push to `main` branch triggers automatic deployment via Cloud Build.
 
 ## Testing
 
 ```bash
-# Run all tests
+# Run tests
 pytest
 
-# Run with coverage
+# With coverage
 pytest --cov=app --cov-report=html
-
-# Run specific test file
-pytest tests/test_routes_integration.py -v
 ```
 
-## Security Considerations
+## Security
 
-- **JWT Tokens**: Use a strong, random secret key in production (64+ characters)
-- **Service Accounts**: Use dedicated service accounts with minimal permissions
-- **Credentials**: Never commit `.env` or credential files to version control
-- **Cloud Run**: Credentials are injected automatically - never set `GOOGLE_APPLICATION_CREDENTIALS`
+- JWT-based authentication for protected endpoints
+- Service accounts with minimal permissions
+- Secrets stored in GCP Secret Manager
+- No credentials in version control
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License
 
-## Contributing
+## Author
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests
-5. Submit a pull request
+Habeeb HAMMED
 
 ---
 
-Built with FastAPI, Vertex AI (Gemini 2.0), and Streamlit.
+Built with FastAPI, Vertex AI, and Streamlit.
