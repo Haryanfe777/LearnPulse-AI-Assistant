@@ -41,6 +41,7 @@ SUPPORT_ESCALATION_*.md
 LATEST_FIXES_SUMMARY.md
 *.txt
 !requirements.txt
+!requirements-streamlit.txt
 
 # Logs
 *.log

@@ -1,4 +1,5 @@
 """Simple Streamlit UI for chatting with the LearnPulse AI Instructor Assistant."""
+import os
 import streamlit as st
 import requests
 import pandas as pd
@@ -13,8 +14,9 @@ import sys
 # ---------------------------
 st.set_page_config(page_title="LearnPulse AI Instructor Assistant", page_icon="🎓", layout="wide")
 
-API_BASE = "http://127.0.0.1:8000"  # FastAPI backend
-st.title("🎓 LearnPulse AI Instructor Assistant (Prototype)")
+# API URL - defaults to localhost for development, use env var for production
+API_BASE = os.getenv("API_URL", "http://127.0.0.1:8000")
+st.title("🎓 LearnPulse AI Instructor Assistant")
 st.caption("Ask questions about students or classes and get instant feedback.")
 
 # ---------------------------
