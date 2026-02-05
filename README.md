@@ -39,7 +39,7 @@ An AI-powered teaching assistant that helps K-12 instructors analyze student lea
 
 1. **Clone and setup**:
    ```bash
-   git clone https://github.com/yourusername/learnpulse-ai-assistant.git
+   git clone https://github.com/Haryanfe777/learnpulse-ai-assistant.git
    cd learnpulse-ai-assistant
    python -m venv venv
    source venv/bin/activate  # Windows: .\venv\Scripts\activate

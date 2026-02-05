@@ -1,5 +1,6 @@
 """Simple Streamlit UI for chatting with the LearnPulse AI Instructor Assistant."""
 import os
+import hashlib
 import streamlit as st
 import requests
 import pandas as pd
@@ -16,6 +17,68 @@ st.set_page_config(page_title="LearnPulse AI Instructor Assistant", page_icon="�
 
 # API URL - defaults to localhost for development, use env var for production
 API_BASE = os.getenv("API_URL", "http://127.0.0.1:8000")
+
+# ---------------------------
+# AUTHENTICATION
+# ---------------------------
+# Teacher credentials (hashed password for security)
+TEACHERS = {
+    "Habeeb HAMMED": hashlib.sha256("Haryanfe7".encode()).hexdigest()
+}
+
+def check_password(username: str, password: str) -> bool:
+    """Verify teacher credentials."""
+    if username in TEACHERS:
+        hashed = hashlib.sha256(password.encode()).hexdigest()
+        return hashed == TEACHERS[username]
+    return False
+
+def show_login_page():
+    """Display the login page."""
+    st.title("🎓 LearnPulse AI Instructor Assistant")
+    st.subheader("Teacher Login")
+    
+    with st.form("login_form"):
+        st.markdown("Please enter your credentials to access the assistant.")
+        username = st.text_input("Username", placeholder="Enter your full name")
+        password = st.text_input("Password", type="password", placeholder="Enter your password")
+        submit = st.form_submit_button("Login", use_container_width=True)
+        
+        if submit:
+            if check_password(username, password):
+                st.session_state["authenticated"] = True
+                st.session_state["teacher_name"] = username
+                st.rerun()
+            else:
+                st.error("Invalid username or password. Please try again.")
+    
+    st.markdown("---")
+    st.caption("LearnPulse AI - Empowering educators with AI-driven insights")
+
+def show_logout_button():
+    """Display logout button in sidebar."""
+    with st.sidebar:
+        st.markdown(f"**Welcome, {st.session_state.get('teacher_name', 'Teacher')}!**")
+        if st.button("Logout", key="logout_btn"):
+            st.session_state["authenticated"] = False
+            st.session_state["teacher_name"] = None
+            st.session_state["messages"] = []
+            st.session_state["chat_session_id"] = None
+            st.rerun()
+        st.markdown("---")
+
+# Check authentication state
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+
+# Show login page if not authenticated
+if not st.session_state["authenticated"]:
+    show_login_page()
+    st.stop()
+
+# ---------------------------
+# MAIN APP (authenticated users only)
+# ---------------------------
 st.title("🎓 LearnPulse AI Instructor Assistant")
 st.caption("Ask questions about students or classes and get instant feedback.")
 
@@ -122,6 +185,9 @@ def render_message_with_charts(response_text):
 # ---------------------------
 # SIDEBAR (for dataset preview)
 # ---------------------------
+# Show logout button first
+show_logout_button()
+
 with st.sidebar:
     st.header("📂 Mock Data Viewer")
     try:

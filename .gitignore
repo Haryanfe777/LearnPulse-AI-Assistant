@@ -34,3 +34,7 @@ node_modules/
 # Local data caches
 .cache/
 
+# Documentation files (keep only README.md for production)
+*.md
+!README.md
+
